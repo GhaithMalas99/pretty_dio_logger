@@ -279,26 +279,22 @@ class PrettyDioLogger extends Interceptor {
   }
 
   void _printMapAsTable(Map? map, {String? header,bool isBody=false}) {
-    if(isBody&&bodyMaxLines!=null){
-      int count=0;
-      if (map == null || map.isEmpty) return;
-      logPrint('╔ $header ');
-      map.forEach(
-              (dynamic key, dynamic value){
-                if(count>bodyMaxLines!) {
-                  _printLine('╚');
-                return;
-                }
-                count++;
-                _printKV(key.toString(), value);
-              });
-      _printLine('╚');
-    }
-
     if (map == null || map.isEmpty) return;
     logPrint('╔ $header ');
-    map.forEach(
-        (dynamic key, dynamic value) => _printKV(key.toString(), value));
+    if(isBody&&bodyMaxLines!=null){
+      int count=0;
+      List entries=map.entries.toList();
+      for(int i=0;i<entries.length;i++){
+        if(count>bodyMaxLines!) {
+          break;
+        }
+        count++;
+        _printKV(entries[i].key.toString(), entries[i].value);
+      }
+    }
+    else{
+      map.forEach((dynamic key, dynamic value) => _printKV(key.toString(), value));
+    }
     _printLine('╚');
   }
 }

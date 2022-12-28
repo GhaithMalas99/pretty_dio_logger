@@ -289,6 +289,7 @@ class PrettyDioLogger extends Interceptor {
                   _printLine('╚');
                 return;
                 }
+                count++;
                 _printKV(key.toString(), value);
               });
       _printLine('╚');

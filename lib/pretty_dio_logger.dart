@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:collection/collection.dart';
 
 class PrettyDioLogger extends Interceptor {
   /// Print request [Options]
@@ -33,6 +34,9 @@ class PrettyDioLogger extends Interceptor {
   /// Width size per logPrint
   final int maxWidth;
 
+  ///max lines of body to be logged
+  final int? bodyMaxLines;
+
   /// Log printer; defaults logPrint log to console.
   /// In flutter, you'd better use debugPrint.
   /// you can also write log in a file.
@@ -47,7 +51,8 @@ class PrettyDioLogger extends Interceptor {
       this.error = true,
       this.maxWidth = 90,
       this.compact = true,
-      this.logPrint = print});
+      this.logPrint = print,
+      this.bodyMaxLines});
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -69,14 +74,14 @@ class PrettyDioLogger extends Interceptor {
     if (requestBody && options.method != 'GET') {
       final dynamic data = options.data;
       if (data != null) {
-        if (data is Map) _printMapAsTable(options.data as Map?, header: 'Body');
+        if (data is Map) _printMapAsTable(options.data as Map?, header: 'Body',isBody: true);
         if (data is FormData) {
           final formDataMap = <String, dynamic>{}
             ..addEntries(data.fields)
             ..addEntries(data.files);
-          _printMapAsTable(formDataMap, header: 'Form data | ${data.boundary}');
+          _printMapAsTable(formDataMap, header: 'Form data | ${data.boundary}',isBody: true);
         } else {
-          _printBlock(data.toString());
+          _printBlock(data.toString(),isBody: true);
         }
       }
     }
@@ -176,9 +181,16 @@ class PrettyDioLogger extends Interceptor {
     }
   }
 
-  void _printBlock(String msg) {
+  void _printBlock(String msg, {bool isBody = false}) {
     final lines = (msg.length / maxWidth).ceil();
     for (var i = 0; i < lines; ++i) {
+      if(isBody&&bodyMaxLines!=null)
+        {
+          if(i>bodyMaxLines!)
+            {
+              break;
+            }
+        }
       logPrint((i >= 0 ? '║ ' : '') +
           msg.substring(i * maxWidth,
               math.min<int>(i * maxWidth + maxWidth, msg.length)));
@@ -266,7 +278,22 @@ class PrettyDioLogger extends Interceptor {
     return list.length < 10 && list.toString().length < maxWidth;
   }
 
-  void _printMapAsTable(Map? map, {String? header}) {
+  void _printMapAsTable(Map? map, {String? header,bool isBody=false}) {
+    if(isBody&&bodyMaxLines!=null){
+      int count=0;
+      if (map == null || map.isEmpty) return;
+      logPrint('╔ $header ');
+      map.forEach(
+              (dynamic key, dynamic value){
+                if(count>bodyMaxLines!) {
+                  _printLine('╚');
+                return;
+                }
+                _printKV(key.toString(), value);
+              });
+      _printLine('╚');
+    }
+
     if (map == null || map.isEmpty) return;
     logPrint('╔ $header ');
     map.forEach(
